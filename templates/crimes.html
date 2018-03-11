@@ -1,0 +1,14 @@
+{% block page_content %}
+
+{% if not crimes %}
+    <h1>No results found</h1>
+{% else %}
+{% for crime in crimes %}
+    <p>Crime: {{ crime['Category'] }} | Number: {{ crime['arrest_count'] }}</p>
+{% endfor %}
+{% endif %}
+
+{% endblock %}
+
+
+{% extends 'base.html' %}

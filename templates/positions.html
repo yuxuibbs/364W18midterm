@@ -1,0 +1,14 @@
+{% block page_content %}
+
+{% if not positions %}
+    <h1>No results found</h1>
+{% else %}
+{% for position in positions %}
+    <p>Position: {{ position['Position'] }} | Arrest count: {{ position['arrest_count'] }}</p>
+{% endfor %}
+{% endif %}
+
+{% endblock %}
+
+
+{% extends 'base.html' %}

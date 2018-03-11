@@ -1,0 +1,14 @@
+{% block page_content %}
+
+{% if not players %}
+    <h1>No results found</h1>
+{% else %}
+{% for player in players %}
+    <p>Player: {{ player['Name'] }} | Team: {{ player['Team'] }} | Position: {{ player['Position'] }} | Arrest count: {{ player['arrest_count'] }}</p>
+{% endfor %}
+{% endif %}
+
+{% endblock %}
+
+
+{% extends 'base.html' %}

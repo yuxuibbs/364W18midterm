@@ -1,0 +1,14 @@
+{% block page_content %}
+
+{% if not teams %}
+    <h1>No results found</h1>
+{% else %}
+{% for team in teams %}
+    <p>Team Abbreviation: {{ team['Team'] }} | Team name: {{ team['Team_preffered_name'] }} | Conference: {{ team['Team_Conference_Division'] }} | Arrest count: {{ team['arrest_count'] }}</p>
+{% endfor %}
+{% endif %}
+
+{% endblock %}
+
+
+{% extends 'base.html' %}

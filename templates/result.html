@@ -1,0 +1,34 @@
+{% block content %}
+
+{% if result['player'] %}
+<h1>Players</h1>
+{% for player in result['player'] %}
+    <p>Player: {{ player['Name'] }} | Arrest count: {{ player['arrest_count'] }}</p>
+{% endfor %}
+{% endif %}
+
+{% if result['crime'] %}
+<h1>Crimes</h1>
+{% for crime in result['crime'] %}
+    <p>Crime: {{ crime['Category'] }} | Number: {{ crime['arrest_count'] }}</p>
+{% endfor %}
+{% endif %}
+
+{% if result['position'] %}
+<h1>Positions</h1>
+{% for position in result['position'] %}
+    <p>Position: {{ position['Position'] }} | Arrest count: {{ position['arrest_count'] }}</p>
+{% endfor %}
+{% endif %}
+
+{% if result['team'] %}
+<h1>Teams</h1>
+{% for team in result['team'] %}
+    <p>Team Abbreviation: {{ team['Team'] }} | Team name: {{ team['Team_city'] }} {{ team['Team_name'] }} | Arrest count: {{ team['arrest_count'] }}</p>
+{% endfor %}
+{% endif %}
+
+{% endblock %}
+
+
+{% extends 'base.html' %}
