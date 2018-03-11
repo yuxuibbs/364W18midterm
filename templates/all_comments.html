@@ -1,0 +1,15 @@
+{% block page_content %}
+
+
+{% endblock %}
+{% for comment in all_comments %}
+    <li>"{{ comment[0] }}"" posted by <em>{{ comment[1] }}</em> with search parameters "{{ comment[2] }}" and "{{ comment[3] }}" </li>
+{% endfor %}
+</ul>
+
+{% if not all_comments %}
+    <h1>There are no saved comments</h1>
+{% endif %}
+
+
+{% extends 'base.html' %}

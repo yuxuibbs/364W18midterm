@@ -1,4 +1,4 @@
-# Use user input to get NFL arrests info using the NFL Arrests API
+# Use user input to get NFL arrests info using the NFL Arrests API for Winter 2018 SI364 midterm
 
 ## Code Requirements
 - [x] **Ensure that the `SI364midterm.py` file has all the setup (`app.config` values, import statements, code to run the app if that file is run, etc) necessary to run the Flask application, and the application runs correctly on `http://localhost:5000` (and the other routes you set up)**
@@ -16,9 +16,9 @@
 - [ ] **Have a one:many relationship that works properly built between 2 of your models.**
 - [x] **Successfully save data to each table.**
 - [x] **Successfully query data from each of your models (so query at least one column, or all data, from every database table you have a model for).**
-- [ ] **Query data using an `.all()` method in at least one view function and send the results of that query to a template.**
-- [ ] **Include at least one use of `redirect`. (HINT: This should probably happen in the view function where data is posted...)**
-- [ ] **Include at least one use of `url_for`. (HINT: This could happen where you render a form...)**
+- [x] **Query data using an `.all()` method in at least one view function and send the results of that query to a template.**
+- [x] **Include at least one use of `redirect`. (HINT: This should probably happen in the view function where data is posted...)**
+- [x] **Include at least one use of `url_for`. (HINT: This could happen where you render a form...)**
 - [x] **Have at least 3 view functions that are not included with the code we have provided. (But you may have more! *Make sure you include ALL view functions in the app in the documentation and ALL pages in the app in the navigation links of `base.html`.*)**
 
 

@@ -1,5 +1,5 @@
-{% block content %}
-<form method="POST">
+{% block page_content %}
+<form action="/result" method="POST">
     {{ form.hidden_tag() }}
     {{ form.name.label() }} {{ form.name }}<br>
     {{ form.param.label() }} {{ form.param }}<br>

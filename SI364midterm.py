@@ -39,7 +39,6 @@ def get_or_create_comment(comment_string, search):
 def get_or_create_search(username, param, search_string, comment):
     search = db.session.query(Search).filter_by(username=username, search_param=param, search=search_string).first()
     if not search:
-        print(username, param, search_string, comment)
         search = Search(username=username, search_param=param, search=search_string)
         db.session.add(search)
         db.session.commit()
@@ -56,11 +55,14 @@ def get_or_create_player(player_name, result):
 def get_or_create_result(result_url):
     result = db.session.query(Result).filter_by(result_url = result_url).first()
     if not result:
-        print(username, param, result_string, comment)
         result = Result(result_url=result_url)
         db.session.add(result)
         db.session.commit()
     return result
+
+def add_to_dictionary(dictionary, key, value):
+    if value:
+        dictionary[key] = value
 
 ##################
 ##### MODELS #####
@@ -123,49 +125,59 @@ class SearchForm(FlaskForm):
 @app.route('/', methods=['GET', 'POST'])
 def home():
     form = SearchForm()
+    return render_template('index.html', form=form)
+
+@app.route('/result', methods=['GET', 'POST'])
+def result():
+    form = SearchForm()
     name = form.name.data
     param = form.param.data
     search = form.search.data
     comment = form.comment.data
-    # print(name, param, search, comment)
+    if form.errors:
+        flash(form.errors)
     if request.method == 'POST' and form.validate_on_submit():
+        result = {}
         search_db = get_or_create_search(name, param, search, comment)
         get_or_create_comment(comment, search_db)
+        if param == 'player':
+            result = get_or_create_result('http://nflArrest.com/api/v1/crime/topPlayers/' + search)
+            get_or_create_player(search, result)
         flash('Form submitted')
-        result = {}
         if param == 'crime':
-            result['player'] = json.loads(requests.get('http://nflArrest.com/api/v1/crime/topPlayers/' + search).text)
-            result['team'] = json.loads(requests.get('http://nflArrest.com/api/v1/crime/topTeams/' + search).text)
-            result['position'] = json.loads(requests.get('http://nflArrest.com/api/v1/crime/topPositions/' + search).text)
+            add_to_dictionary(result, 'player', json.loads(requests.get('http://nflArrest.com/api/v1/crime/topPlayers/' + search).text))
+            add_to_dictionary(result, 'team', json.loads(requests.get('http://nflArrest.com/api/v1/crime/topTeams/' + search).text))
+            add_to_dictionary(result, 'position', json.loads(requests.get('http://nflArrest.com/api/v1/crime/topPositions/' + search).text))
         elif param == 'player':
-            result['team'] = json.loads(requests.get('http://nflArrest.com/api/v1/player/topTeams/' + search).text)
-            result['position'] = json.loads(requests.get('http://nflArrest.com/api/v1/player/topPositions/' + search).text)
-            result['crime'] = json.loads(requests.get('http://nflArrest.com/api/v1/player/topCrimes/' + search).text)
+            add_to_dictionary(result, 'team', json.loads(requests.get('http://nflArrest.com/api/v1/player/topTeams/' + search).text))
+            add_to_dictionary(result, 'position', json.loads(requests.get('http://nflArrest.com/api/v1/player/topPositions/' + search).text))
+            add_to_dictionary(result, 'crime', json.loads(requests.get('http://nflArrest.com/api/v1/player/topCrimes/' + search).text))
         elif param == 'team':
-            result['player'] = json.loads(requests.get('http://nflArrest.com/api/v1/team/topPlayers/' + search).text)
-            result['position'] = json.loads(requests.get('http://nflArrest.com/api/v1/team/topPositions/' + search).text)
-            result['crime'] = json.loads(requests.get('http://nflArrest.com/api/v1/team/topCrimes/' + search).text)
+            add_to_dictionary(result, 'player', json.loads(requests.get('http://nflArrest.com/api/v1/team/topPlayers/' + search).text))
+            add_to_dictionary(result, 'position', json.loads(requests.get('http://nflArrest.com/api/v1/team/topPositions/' + search).text))
+            add_to_dictionary(result, 'crime', json.loads(requests.get('http://nflArrest.com/api/v1/team/topCrimes/' + search).text))
         else:
             # position
-            result['team'] = json.loads(requests.get('http://nflArrest.com/api/v1/position/topTeams/' + search).text)
-            result['crime'] = json.loads(requests.get('http://nflArrest.com/api/v1/position/topCrimes/' + search).text)
+            add_to_dictionary(result, 'team', json.loads(requests.get('http://nflArrest.com/api/v1/position/topTeams/' + search).text))
+            add_to_dictionary(result, 'crime', json.loads(requests.get('http://nflArrest.com/api/v1/position/topCrimes/' + search).text))
+        if not result:
+            flash('Search invalid. Try again.')
+            return redirect(url_for('home'))
         return render_template('result.html', result=result)
-        # return redirect(url_for('home'))
-    flash(form.errors)
-    return render_template('index.html', form=form, name=name, param=param, search=search, comment=comment)
-
-# @app.route('/result', methods=['GET', 'POST'])
-# def result():
+    else:
+        flash('Search invalid. Try again.')
+        return redirect(url_for('home'))
 
 
 # view database stuff
 @app.route('/all_comments')
 def all_comments():
-    pass
-
-@app.route('/all_searches')
-def all_searches():
-    pass
+    comments = Comment.query.all()
+    all_comments = []
+    for comment in comments:
+        search = Search.query.filter_by(id=comment.search_id).first()
+        all_comments.append((comment.comment, search.username, search.search_param, search.search))
+    return render_template('all_comments.html', all_comments=all_comments)
 
 # references
 @app.route('/crimesList')
