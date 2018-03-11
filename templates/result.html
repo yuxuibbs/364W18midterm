@@ -10,7 +10,7 @@
 {% if result['crime'] %}
 <h1>Crimes</h1>
 {% for crime in result['crime'] %}
-    <p>Crime: {{ crime['Category'] }} | Number: {{ crime['arrest_count'] }}</p>
+    <p>Crime: {{ crime['Category'] }}{{ crime['category'] }} | Number: {{ crime['arrest_count'] }}</p>
 {% endfor %}
 {% endif %}
 

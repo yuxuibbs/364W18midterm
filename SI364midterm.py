@@ -28,6 +28,15 @@ db = SQLAlchemy(app)
 ######################################
 ######## HELPER FXNS (If any) ########
 ######################################
+
+def get_or_create_search(search_param, search_text):
+    search = db.session.query(Search).filter_by(search_param=search_param, search_text=search_text).first()
+    if not search:
+        search = Search(search_param=search_param, search_text=search_text)
+        db.session.add(search)
+        db.session.commit()
+    return search
+
 def get_or_create_comment(comment_string, search):
     comment = db.session.query(Comment).filter_by(comment=comment_string).first()
     if not comment:
@@ -36,31 +45,24 @@ def get_or_create_comment(comment_string, search):
         db.session.commit()
     return comment
 
-def get_or_create_search(username, param, search_string, comment):
-    search = db.session.query(Search).filter_by(username=username, search_param=param, search=search_string).first()
-    if not search:
-        search = Search(username=username, search_param=param, search=search_string)
-        db.session.add(search)
+def get_or_create_user(username, search):
+    user = db.session.query(User).filter_by(username=username).first()
+    if not user:
+        user = User(username=username, search_id=search.id)
+        db.session.add(user)
         db.session.commit()
-    return search
+    return user
 
-def get_or_create_player(player_name, result):
-    player = db.session.query(Player).filter_by(player=player_name).first()
-    if not player:
-        player = Comment(player=player_name, result=result.id)
-        db.session.add(player)
-        db.session.commit()
-    return player
-
-def get_or_create_result(result_url):
-    result = db.session.query(Result).filter_by(result_url = result_url).first()
+def get_or_create_result(result_string, search):
+    result = db.session.query(Result).filter_by(result=result_string).first()
     if not result:
-        result = Result(result_url=result_url)
+        result = Result(result=result_string, search_id=search.id)
         db.session.add(result)
         db.session.commit()
     return result
 
 def add_to_dictionary(dictionary, key, value):
+    # adds value to dictionary if the value is not empty
     if value:
         dictionary[key] = value
 
@@ -74,32 +76,29 @@ class Comment(db.Model):
     comment = db.Column(db.String(500))
     search_id = db.Column(db.Integer, db.ForeignKey('Search.id'))
 
-    def __repr__(self):
-        return "Comment: {} ({})".format(self.comment, self.user_id)
-
 class Search(db.Model):
     __tablename__ = 'Search'
     id = db.Column(db.Integer, primary_key=True)
-    username = db.Column(db.String(32), unique=True)
     search_param = db.Column(db.String(16))
-    search = db.Column(db.String(64))
+    search_text = db.Column(db.String(64))
     comment = db.relationship("Comment", backref=db.backref('Search', lazy=True))
+    user = db.relationship("User", backref=db.backref('Search', lazy=True))
+    result = db.relationship("Result", backref=db.backref('Search', lazy=True))
 
-    def __repr__(self):
-        return "Search: {} ({})".format(self.search, self.username)
 
-class Player(db.Model):
-    __tablename__ = 'Player'
+class User(db.Model):
+    __tablename__ = 'User'
     id = db.Column(db.Integer, primary_key=True)
-    player_name = db.Column(db.String(64))
-    result_id = db.Column(db.Integer, db.ForeignKey('Result.id'))
+    username = db.Column(db.String(64), unique=True)
+    search_id = db.Column(db.Integer, db.ForeignKey('Search.id'))
 
 
 class Result(db.Model):
     __tablename__ = 'Result'
     id = db.Column(db.Integer, primary_key=True)
-    result_url = db.Column(db.String(200))
-    player = db.relationship("Player", backref=db.backref('Result', lazy=True))
+    # not sure how large the result might be
+    result = db.Column(db.String(40000))
+    search_id = db.Column(db.Integer, db.ForeignKey('Search.id'))
 
 
 ###################
@@ -115,7 +114,7 @@ class SearchForm(FlaskForm):
 
     def validate_param(self, field):
         if str(field.data) not in ['crime', 'player', 'team', 'position']:
-            raise ValidationError("Search parameter invalid. Try again.")
+            raise ValidationError("Search parameter invalid. Make sure it is crime, player, team, or position (case sensitive)")
 
 
 #######################
@@ -134,15 +133,8 @@ def result():
     param = form.param.data
     search = form.search.data
     comment = form.comment.data
-    if form.errors:
-        flash(form.errors)
     if request.method == 'POST' and form.validate_on_submit():
         result = {}
-        search_db = get_or_create_search(name, param, search, comment)
-        get_or_create_comment(comment, search_db)
-        if param == 'player':
-            result = get_or_create_result('http://nflArrest.com/api/v1/crime/topPlayers/' + search)
-            get_or_create_player(search, result)
         flash('Form submitted')
         if param == 'crime':
             add_to_dictionary(result, 'player', json.loads(requests.get('http://nflArrest.com/api/v1/crime/topPlayers/' + search).text))
@@ -150,23 +142,28 @@ def result():
             add_to_dictionary(result, 'position', json.loads(requests.get('http://nflArrest.com/api/v1/crime/topPositions/' + search).text))
         elif param == 'player':
             add_to_dictionary(result, 'team', json.loads(requests.get('http://nflArrest.com/api/v1/player/topTeams/' + search).text))
-            add_to_dictionary(result, 'position', json.loads(requests.get('http://nflArrest.com/api/v1/player/topPositions/' + search).text))
             add_to_dictionary(result, 'crime', json.loads(requests.get('http://nflArrest.com/api/v1/player/topCrimes/' + search).text))
         elif param == 'team':
             add_to_dictionary(result, 'player', json.loads(requests.get('http://nflArrest.com/api/v1/team/topPlayers/' + search).text))
-            add_to_dictionary(result, 'position', json.loads(requests.get('http://nflArrest.com/api/v1/team/topPositions/' + search).text))
             add_to_dictionary(result, 'crime', json.loads(requests.get('http://nflArrest.com/api/v1/team/topCrimes/' + search).text))
         else:
             # position
             add_to_dictionary(result, 'team', json.loads(requests.get('http://nflArrest.com/api/v1/position/topTeams/' + search).text))
             add_to_dictionary(result, 'crime', json.loads(requests.get('http://nflArrest.com/api/v1/position/topCrimes/' + search).text))
+        search_db = get_or_create_search(param, search)
+        get_or_create_result(str(result), search_db)
+        get_or_create_comment(comment, search_db)
+        get_or_create_user(name, search_db)
+
         if not result:
             flash('Search invalid. Try again.')
             return redirect(url_for('home'))
         return render_template('result.html', result=result)
+    if form.errors:
+        flash(form.errors)
     else:
         flash('Search invalid. Try again.')
-        return redirect(url_for('home'))
+    return redirect(url_for('home'))
 
 
 # view database stuff
@@ -176,7 +173,8 @@ def all_comments():
     all_comments = []
     for comment in comments:
         search = Search.query.filter_by(id=comment.search_id).first()
-        all_comments.append((comment.comment, search.username, search.search_param, search.search))
+        user = User.query.filter_by(search_id=comment.search_id).first()
+        all_comments.append((comment.comment, user.username, search.search_param, search.search_text))
     return render_template('all_comments.html', all_comments=all_comments)
 
 # references
