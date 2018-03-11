@@ -3,7 +3,6 @@
 ###############################
 
 ## Import statements
-# Import statements
 import os
 from flask import Flask, render_template, session, redirect, url_for, flash, request
 from flask_wtf import FlaskForm
@@ -22,7 +21,7 @@ app.use_reloader = True
 app.config['SECRET_KEY'] = 'random string'
 app.config["SQLALCHEMY_DATABASE_URI"] = "postgresql://yuxuan:root@localhost:5432/yuxuanc364midterm"
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
-# ## Statements for db setup (and manager setup if using Manager)
+## Statements for db setup (and manager setup if using Manager)
 db = SQLAlchemy(app)
 
 ######################################
@@ -71,12 +70,14 @@ def add_to_dictionary(dictionary, key, value):
 ##################
 
 class Comment(db.Model):
+    # stores comments
     __tablename__ = "Comment"
     id = db.Column(db.Integer, primary_key=True)
     comment = db.Column(db.String(500))
     search_id = db.Column(db.Integer, db.ForeignKey('Search.id'))
 
 class Search(db.Model):
+    # stores searches
     __tablename__ = 'Search'
     id = db.Column(db.Integer, primary_key=True)
     search_param = db.Column(db.String(16))
@@ -87,6 +88,7 @@ class Search(db.Model):
 
 
 class User(db.Model):
+    # stores user info
     __tablename__ = 'User'
     id = db.Column(db.Integer, primary_key=True)
     username = db.Column(db.String(64), unique=True)
@@ -94,6 +96,7 @@ class User(db.Model):
 
 
 class Result(db.Model):
+    # stores results
     __tablename__ = 'Result'
     id = db.Column(db.Integer, primary_key=True)
     # not sure how large the result might be
@@ -136,6 +139,7 @@ def result():
     if request.method == 'POST' and form.validate_on_submit():
         result = {}
         flash('Form submitted')
+        # get some relevant results and store it in a result dictionary
         if param == 'crime':
             add_to_dictionary(result, 'player', json.loads(requests.get('http://nflArrest.com/api/v1/crime/topPlayers/' + search).text))
             add_to_dictionary(result, 'team', json.loads(requests.get('http://nflArrest.com/api/v1/crime/topTeams/' + search).text))
@@ -150,14 +154,17 @@ def result():
             # position
             add_to_dictionary(result, 'team', json.loads(requests.get('http://nflArrest.com/api/v1/position/topTeams/' + search).text))
             add_to_dictionary(result, 'crime', json.loads(requests.get('http://nflArrest.com/api/v1/position/topCrimes/' + search).text))
+        
+        # add info to database
         search_db = get_or_create_search(param, search)
         get_or_create_result(str(result), search_db)
         get_or_create_comment(comment, search_db)
         get_or_create_user(name, search_db)
-
+        # make sure search is valid
         if not result:
             flash('Search invalid. Try again.')
             return redirect(url_for('home'))
+        # display result
         return render_template('result.html', result=result)
     if form.errors:
         flash(form.errors)
@@ -169,6 +176,7 @@ def result():
 # view database stuff
 @app.route('/all_comments')
 def all_comments():
+    # displays all comments and searches in the database
     comments = Comment.query.all()
     all_comments = []
     for comment in comments:
@@ -180,22 +188,26 @@ def all_comments():
 # references
 @app.route('/crimesList')
 def all_crimes():
+    # list of crimes
     crimes = json.loads(requests.get('http://nflarrest.com/api/v1/crime').text)
     return render_template('crimes.html', crimes=crimes)
 
 @app.route('/playerList')
 def all_players():
+    # list of players
     players = json.loads(requests.get('http://nflarrest.com/api/v1/player').text)
     print(players)
     return render_template('players.html', players=players)
 
 @app.route('/teamList')
 def all_teams():
+    # list of teams
     teams = json.loads(requests.get('http://nflarrest.com/api/v1/team').text)
     return render_template('teams.html', teams=teams)
 
 @app.route('/positionList')
 def all_positions():
+    # list of positions
     positions = json.loads(requests.get('http://nflarrest.com/api/v1/position').text)
     return render_template('positions.html', positions=positions)
 
@@ -208,9 +220,6 @@ def page_not_found(e):
 
 
 ## Code to run the application...
-
-# Put the code to do so here!
-# NOTE: Make sure you include the code you need to initialize the database structure when you run the application!
 if __name__ == '__main__':
     db.create_all()
     app.run(use_reloader=True, debug=True)
